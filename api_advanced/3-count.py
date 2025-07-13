@@ -1,65 +1,52 @@
 #!/usr/bin/python3
-"""
-Recursive function to query Reddit API, parse hot post titles,
-and count given keywords (case-insensitive, space-delimited).
-"""
+"""Write a recursive function that queries
+ the Reddit API, parses the title of all hot articles,
+ and prints a sorted count of given keywords"""
+
 
 import requests
-import re
 
 
-def count_words(subreddit, word_list, after=None, word_count=None):
+def count_words(subreddit, word_list, after='', word_dict={}):
+    """ A function that queries the Reddit API parses the title of
+    all hot articles, and prints a sorted count of given keywords
+    (case-insensitive, delimited by spaces.
+    Javascript should count as javascript, but java should not).
+    If no posts match or the subreddit is invalid, it prints nothing.
     """
-    Prints a sorted count of given keywords in subreddit hot article titles.
-    """
-    if word_count is None:
-        # Initialize word counts (all lowercase, combined if repeated)
-        word_count = {}
+
+    if not word_dict:
         for word in word_list:
-            lw = word.lower()
-            word_count[lw] = word_count.get(lw, 0)
+            if word.lower() not in word_dict:
+                word_dict[word.lower()] = 0
 
-    url = f"https://www.reddit.com/r/{subreddit}/hot.json"
-    headers = {
-        "User-Agent": "python:keyword.counter:v1.0 (by /u/anonymous_dev_script)"
-    }
-    params = {
-        "limit": 100,
-        "after": after
-    }
+    if after is None:
+        wordict = sorted(word_dict.items(), key=lambda x: (-x[1], x[0]))
+        for word in wordict:
+            if word[1]:
+                print('{}: {}'.format(word[0], word[1]))
+        return None
+
+    url = 'https://www.reddit.com/r/{}/hot/.json'.format(subreddit)
+    header = {'user-agent': 'redquery'}
+    parameters = {'limit': 100, 'after': after}
+    response = requests.get(url, headers=header, params=parameters,
+                            allow_redirects=False)
+
+    if response.status_code != 200:
+        return None
 
     try:
-        response = requests.get(
-            url, headers=headers, params=params, allow_redirects=False
-        )
+        hot = response.json()['data']['children']
+        aft = response.json()['data']['after']
+        for post in hot:
+            title = post['data']['title']
+            lower = [word.lower() for word in title.split(' ')]
 
-        if response.status_code != 200:
-            return
+            for word in word_dict.keys():
+                word_dict[word] += lower.count(word)
 
-        data = response.json().get("data", {})
-        posts = data.get("children", [])
+    except Exception:
+        return None
 
-        for post in posts:
-            title = post.get("data", {}).get("title", "").lower()
-            words = re.findall(r'\b\w+\b', title)
-
-            for word in words:
-                if word in word_count:
-                    word_count[word] += 1
-
-        # Recurse if there's a next page
-        next_after = data.get("after")
-        if next_after is not None:
-            return count_words(subreddit, word_list, next_after, word_count)
-
-        # All recursion is done: now sort & print results
-        filtered = {k: v for k, v in word_count.items() if v > 0}
-        sorted_result = sorted(
-            filtered.items(),
-            key=lambda item: (-item[1], item[0])
-        )
-        for word, count in sorted_result:
-            print(f"{word}: {count}")
-
-    except requests.RequestException:
-        return
+    count_words(subreddit, word_list, aft, word_dict)
