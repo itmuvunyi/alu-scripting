@@ -1,16 +1,33 @@
-#!/usr/bin/python3
-""" top_ten.py """
 import requests
 
-
 def top_ten(subreddit):
-    """ prints the titles of the first 10 hot posts listed in a subreddit """
-    url = 'https://www.reddit.com/r/{}/hot.json?limit=10'.format(subreddit)
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    response = requests.get(url, headers=headers, allow_redirects=False)
+    url = f"https://www.reddit.com/r/{subreddit}/hot.json?limit=10"
+    headers = {
+        'User-Agent': 'script:reddit.title.fetcher:v1.0 (by /u/yourusername)',
+        'Accept': 'application/json'
+    }
+
+    response = requests.get(url, headers=headers)
+
     if response.status_code != 200:
+        print("Failed to fetch data:", response.status_code)
         print(None)
         return
-    posts = response.json()['data']['children']
-    for post in posts:
-        print(post['data']['title'])
+
+    try:
+        data = response.json().get("data", {})
+        posts = data.get("children", [])
+
+        if not posts:
+            print("No posts found.")
+            print(None)
+            return
+
+        for post in posts:
+            title = post.get("data", {}).get("title")
+            if title:
+                print(title)
+
+    except ValueError:
+        print("Error parsing JSON.")
+        print(None)
