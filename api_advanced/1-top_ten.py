@@ -15,7 +15,7 @@ def top_ten(subreddit):
 
     url = f"https://www.reddit.com/r/{subreddit}/hot.json?limit=10"
     headers = {
-        'User-Agent': 'Python:RedditTopTen:v1.0 (by /u/yourusername)',
+        'User-Agent': 'Python:RedditTopTen:v1.0 (by /u/test-script)',
         'Accept': 'application/json'
     }
 
